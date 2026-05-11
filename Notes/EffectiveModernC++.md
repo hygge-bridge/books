@@ -339,3 +339,58 @@ int main()
 
 4. The understanding of C++’s type deduction rules remains essential!
 
+# CHAPTER 2 auto
+
+## Item 5: Prefer auto to explicit type declarations
+
+##### *What are the advantages of using `auto` instead of the original way writing it?*
+
+```c++
+// Declare a normal variable.
+int x1;
+auto x2;
+auto x3 = 0;
+```
+
+1. `x1` isn't initialized , so its value is indeterminate -- or it is initialized to zero, depending on the context.
+2. `auto` variables have their type deduced from the initializer, so they must be initialized. That means they(`x2 x3`) eliminate uninitialized problems.
+
+```c++
+// Iterate over the contents between the iterators.
+template<typename It>
+void iter1(It b, It e)
+{
+    while (b != e) {
+        typename std::iterator_traits<It>::value_type currValue = *b;
+    }
+}
+template<typename It>
+void iter2(It b, It e)
+{
+    while (b != e) {
+    	auto currValue = *b;
+    }
+}
+```
+
+1. Instead of writing `typename std::iterator_traits<It>::value_type currValue = *b;`, using `auto` would be much less typing.
+
+```c++
+// Compare the values of the elements pointed to by the pointers.
+std::function<bool(const std::unique_ptr<int>&, const std::unique_ptr<int>&)>
+compFunc1 = [](const std::unique_ptr<int>& p1, const std::unique_ptr<int>& p2)
+	{
+		return *p1 < *p2;
+	};
+auto compFunc1 = [](const std::unique_ptr<int>& p1,const std::unique_ptr<int>& p2)
+    { 
+        return *p1 < *p2; 
+    };
+auto compFunc2 = [](const auto& p1,const auto& p2)
+    { 
+        return *p1 < *p2; 
+    };
+```
+
+ 
+
