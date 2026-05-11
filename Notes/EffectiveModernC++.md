@@ -1,0 +1,341 @@
+# CHAPTER 1 Deducing Types
+
+## Item 1: Understand template type deduction.
+
+*Determine the type of a variable*：
+
+### Case 1: ParamType is a Reference or Pointer, but not a Universal Reference
+
+```c++
+int x = 27;
+const int cx = x;
+const int& rx = x;
+const int* px = &x;
+
+template<typename T>
+void f(T& param);
+template<typename T>
+void f_const(const T& param);
+template<typename T>
+void f_pointer(T* param);
+
+int main()
+{
+	f(x);
+	f(cx);
+	f(rx);
+
+	f_const(x);
+	f_const(cx);
+	f_const(rx);	
+	
+	f_pointer(&x);
+	f_pointer(px);
+	return 0;
+}
+```
+
+### Case 2: ParamType is a Universal Reference
+
+```c++
+int x = 27;
+const int cx = x;
+const int& rx = x;
+
+template<typename T>
+void f(T&& param);
+
+int main()
+{
+	f(x);
+	f(cx);
+	f(rx);
+	f(27);
+	return 0;
+}
+```
+
+### Case 3: ParamType is Neither a Pointer nor a Reference
+
+```c++
+const char* const ptr = "Fun with pointers";
+template<typename T>
+void f(T param);
+
+int main()
+{
+	f(ptr);
+	return 0;
+}
+```
+
+### Array Arguments
+
+```c++
+const char name[] = "J. P. Briggs";
+const char* ptrToName = name;
+
+template<typename T>
+void f(T param);
+template<typename T>
+void f_reference(T& param);
+template<typename T>
+void f_pointer(T* param);
+
+int main()
+{
+	f(ptrToName);
+	f_reference(name);
+	f_pointer(name);
+	return 0;
+}
+```
+
+*Get array size at compile time*:
+
+```c++
+#include <array>
+#include <cstddef> 
+
+template<typename T, std::size_t N>
+constexpr std::size_t arraySize(T (&)[N]) noexcept
+{
+	return N;
+}
+
+int main()
+{
+	int keyVals[] = { 1, 3, 7, 9, 11, 22, 35 };
+	std::array<int, arraySize(keyVals)> mappedVals;
+	return 0;
+}
+```
+
+### Function Arguments
+
+```c++
+void someFunc(int, double);
+
+template<typename T>
+void f1(T param);
+template<typename T>
+void f2(T& param);
+
+int main()
+{
+	f1(someFunc);
+	f2(someFunc);
+	return 0;
+}
+```
+
+## Item 2: Understand auto type deduction
+
+*Determine the type of a variable*：
+
+```c++
+#include <initializer_list>
+#include <vector>
+
+void someFunc(int, double);
+
+template<typename T>
+void f(T param); 
+template<typename T>
+void fInitList(std::initializer_list<T> initList);
+
+auto createInitList()
+{
+	return { 1, 2, 3 };
+}
+
+int main()
+{
+	auto x = 27;
+	const auto cx = x;
+	const auto& rx = x;
+	auto&& uref1 = x;
+	auto&& uref2 = cx;
+	auto&& uref3 = 27;
+
+	const char name[] = "R. N. Briggs";
+	auto arr1 = name; 
+	auto& arr2 = name;
+	auto func1 = someFunc; 
+	auto& func2 = someFunc;
+
+	auto x1 = 27;
+	auto x2(27);
+	auto x3 = { 27 }; 
+	auto x4{ 27 };
+	auto x5 = { 1, 2, 3.0 };
+
+	f({ 11, 23, 9 });
+	fInitList({ 11, 23, 9 });
+
+	std::vector<int> v;
+	auto resetV = [&v](const auto& newValue) { v = newValue; }
+	resetV({ 1, 2, 3 });
+
+	return 0;
+}
+```
+
+## Item 3: Understand decltype
+
+*Determine what `decltype` yields for a variable*：
+
+```c++
+int main()
+{
+	const int i = 0;
+	bool f(const Widget & w);
+	struct Point {
+		int x, y;
+	};
+	Widget w;
+	if (f(w)) 
+	vector<int> v;
+	if (v[0] == 0)
+	return 0;
+}
+```
+
+*Determine the type of a variable*：
+
+```c++
+Widget w;
+const Widget& cw = w;
+auto myWidget1 = cw;
+decltype(auto) myWidget2 = cw;
+```
+
+*Access an element in a container*:
+
+```c++
+#include <vector>
+
+template<typename Container, typename Index>
+auto authAndAccess1(Container& c, Index i) -> decltype(c[i])
+{
+    // ... authenticate the user, check permissions, etc. ...
+    return c[i];
+}
+
+template<typename Container, typename Index>
+auto authAndAccess2(Container& c, Index i)
+{
+    // ... authenticate the user, check permissions, etc. ...
+    return c[i];
+}
+
+template<typename Container, typename Index>
+decltype(auto) authAndAccess3(Container& c, Index i)
+{
+    // ... authenticate the user, check permissions, etc. ...
+    return c[i];
+}
+
+// c++14 version
+template<typename Container, typename Index>
+decltype(auto) authAndAccess4(Container&& c, Index i)
+{
+    // ... authenticate the user, check permissions, etc. ...
+    return std::forward<Container>(c)[i];
+}
+
+// c++11 version
+template<typename Container, typename Index>
+auto authAndAccess5(Container&& c, Index i) -> decltype(std::forward<Container>(c)[i])
+{
+    // ... authenticate the user, check permissions, etc. ...
+    return c[i];
+}
+
+int main()
+{
+    std::vector<int> v{ 0, 1 };
+    authAndAccess1(v, 1) = 3;
+    authAndAccess2(v, 1) = 3;
+    authAndAccess3(v, 1) = 3;
+    authAndAccess4(std::vector<int>(1, 2), 1);
+    authAndAccess5(std::vector<int>(1, 2), 1);
+	return 0;
+}
+```
+
+*Determine what type decltype evaluates to*:
+
+```c++
+decltype(auto) f1()
+{
+	int x = 0;
+	return x;
+}
+decltype(auto) f2()
+{
+	int x = 0;
+	return (x);
+}
+
+int main()
+{
+	int x = 0;
+    decltype(x) y = x;
+	decltype((x)) z = x;
+	return 0;
+}
+```
+
+## Item 4: Know how to view deduced types
+
+*Multiple ways to view a variable's deduced type*:
+
+1. IDE Editors: hover your cursor over the entity (may be neither helpful nor accurate)
+
+2. Compiler Diagnostics: cause the compiler to report an error, thereby examining the type
+
+   ```c++
+   template<typename T>
+   class TD;
+   
+   int main()
+   {
+   	const int theAnswer = 42;
+   	auto x = theAnswer;
+   	auto y = &theAnswer;
+   	TD<decltype(x)> a;
+       TD<decltype(y)> b;
+   	return 0;
+   }
+   ```
+
+3. Runtime Output： `boost::type_id_with_cvr<T>()`and`std::type_info::name()` may be neither helpful nor accurate
+
+   ```c++
+   #include <iostream>
+   #include <vector>
+   
+   template<typename T>
+   void f(const T& param)
+   {
+   	std::cout << typeid(T).name() << '\n';
+       std::cout << typeid(param).name() << '\n';
+   }
+   
+   int main()
+   {
+   	const int theAnswer = 42;
+   	auto x = theAnswer;
+   	auto y = &theAnswer;
+   	std::cout << typeid(x).name() << '\n';
+   	std::cout << typeid(y).name() << '\n';
+   
+   	const std::vector<int> v;
+   	f(&v);
+   	return 0;
+   }
+   ```
+
+4. The understanding of C++’s type deduction rules remains essential!
+
