@@ -394,3 +394,48 @@ auto compFunc2 = [](const auto& p1,const auto& p2)
 
  
 
+## Item 8: Prefer nullptr to 0 and NULL
+
+函数重载
+
+清晰
+
+模版
+
+## Item 9: Prefer alias declarations to typedefs
+
+函数指针 			
+
+模版（normal template -> type traits）
+
+## Item 10: Prefer scoped enums to unscoped enums
+
+作用域
+
+隐式转换（特定场景下，这东西确实有用）
+
+前置声明（C++11下其实unscoped enum也支持了）
+
+## Item 11: Prefer deleted functions to private undefined ones
+
+报错时机
+
+对于类的报错信息
+
+类中函数模版特化
+
+## Item 12: Declare overriding functions override
+
+让编译器报错
+
+修改基类虚函数
+
+补充：成员函数的引用限定符
+
+## Item 13: Prefer const_iterators to iterators.
+
+只要不改数据，尽量用const，值传递就无所谓了
+
+为了最大泛化，使用非成员函数begin
+
+补充：在c++11中实现cbegin
