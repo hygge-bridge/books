@@ -439,3 +439,15 @@ auto compFunc2 = [](const auto& p1,const auto& p2)
 为了最大泛化，使用非成员函数begin
 
 补充：在c++11中实现cbegin
+
+## Item 15: Use constexpr whenever possible
+
+constexpr 和const的区别
+
+## Item 16: Make const member functions thread safe
+
+const成员方法在多线程下的问题
+
+什么场景下使用哪一种方案
+
+### Item 17: Understand special member function generation
