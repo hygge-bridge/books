@@ -450,4 +450,29 @@ const成员方法在多线程下的问题
 
 什么场景下使用哪一种方案
 
-### Item 17: Understand special member function generation
+## Item 17: Understand special member function generation
+
+default construct, copy construct/assignment, move construct/assignment, deconstruct的编译器自动生成时机
+
+成员函数模型的影响
+
+关于编译器自动生成函数的最佳实践写法
+
+# CHAPTER 4 Smart Pointers
+
+裸指针的问题
+
+## Item 18: Use std::unique_ptr for exclusive-ownership resource management
+
+unique_ptr特点：
+
+1. 效率
+2. 排他（只move）
+3. 自定义deleter（效率）
+4. 转shared_ptr
+5. 指向对象和数组的区别（但是除非是有个c库返回了一个c指针，否则用stl的数组）
+
+主要的两个用途：
+
+1. 工厂函数
+2. pimpl
