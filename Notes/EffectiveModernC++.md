@@ -469,10 +469,53 @@ unique_ptr特点：
 1. 效率
 2. 排他（只move）
 3. 自定义deleter（效率）
-4. 转shared_ptr
+4. 转shared_ptr很简单
 5. 指向对象和数组的区别（但是除非是有个c库返回了一个c指针，否则用stl的数组）
 
 主要的两个用途：
 
 1. 工厂函数
 2. pimpl
+
+## Item 19: Use std::shared_ptr for shared-ownership resource management
+
+动机：垃圾回收只能回收内存，c++需要通用性和可预测性
+
+引用计数导致的shared_ptr开销：
+
+1. 两个指针（一个指向数据+一个指向控制块）
+2. 控制块需要额外的动态分配内存，make_shared可以解决，但是make_shared无法自定义deletor（也就是有些场景下不能用）
+3. 引用计数的增减是原子的，所以性能比直接增减慢一点
+
+创建控制块的时机：
+
+1. make_shared
+2. 由unique_ptr创建的shared_ptr
+3. 裸指针创建的shared_ptr
+
+不要直接对裸指针构建shared_ptr，直接new一个，另外的用原来的shared_ptr。但是对于this怎么办？ ---> 继承enable_shared_from_this，私有化构造。
+
+## Item 20: Use std::weak_ptr for std::shared_ptr-like pointers that can dangle
+
+在可能有悬挂指针的场景下使用weak_ptr，常见的场景有：
+
+1. 缓存
+2. 观察者列表
+3. 避免shared_ptr循环（一般层级结构不会有循环引用的问题，因为parent拥有unique_ptr的child，child可以使用raw pointer来使用parent，因为child的生命周期一般都比parent短）
+
+性能和shared_ptr差不多。它只是不参与共享拥有权所以不会影响被指向对象的引用计数。但是他会影响控制块的弱引用计数。
+
+weak_ptr升级为shared_ptr是原子操作
+
+```c++
+std::shared_ptr<int> sp;
+std::weak_ptr<int> wp{sp};
+// 升级都是原子操作
+auto sp2 = wp.lock();
+std::shared_ptr<int> sp3{wp};
+```
+
+
+
+
+
