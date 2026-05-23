@@ -440,6 +440,18 @@ auto compFunc2 = [](const auto& p1,const auto& p2)
 
 补充：在c++11中实现cbegin
 
+## Item 14: Declare functions noexcept if they won’t emit exceptions
+
+c++11和c++98在声明为无异常但是扔出异常的区别
+
+noexcept 带来的性能提升
+
+标准库的swap的noexcept的特殊点
+
+内存释放和析构函数的noexcept
+
+接口设置何时添加noexcept
+
 ## Item 15: Use constexpr whenever possible
 
 constexpr 和const的区别
@@ -515,7 +527,58 @@ auto sp2 = wp.lock();
 std::shared_ptr<int> sp3{wp};
 ```
 
+## Item 21: Prefer std::make_unique and std::make_shared to direct use of new
+
+make函数的优点：
+
+1. dry原则
+
+   ```c++
+   auto spw1(std::make_shared<Widget>()); // 只写了一次Widget
+   std::shared_ptr<Widget> spw2(new Widget); // 写了两次Widget
+   ```
+
+2. exception-safe（函数参数求值顺序无法确定导致的问题）
+
+   ```c++
+   void processWidget(std::shared_ptr<Widget> spw, int priority);=
+   // 有可能在《new》后《构造shared_ptr》前，执行computePriority，但是抛出异常，new的内存就无法释放了
+   processWidget(std::shared_ptr<Widget>(new Widget), computePriority()); 
+   // new和构造被包装成一次操作
+   processWidget(std::make_shared<Widget>(), computePriority());
+   ```
+
+3. 效率更高，object code更小更高效。
+
+   1. make_shared的控制块和对象内存是连续内存，所以无需在控制块存储指向对象内存的指针
+   2. make_shared只会分配一次内存
 
 
 
+缺点：
+
+1. make函数不支持自定义删除器
+
+2. make函数内部使用完美转发，而`{}`无法被完美转发（因为{}没有类型），所以当想要使用初始化列表时，只能先够着初始化列表，再传递给make函数
+
+   ```c++
+   auto initList = { 10, 20 };
+   auto spv = std::make_shared<std::vector<int>>(initList);
+   // 错误
+   auto spv = std::make_shared<std::vector<int>>({ 10, 20 });
+   ```
+
+3. 自定义operator new/delete时，因为自定义new/delete一般只会考虑对象的size，但是shared_ptr还有控制块的size，所以使用make函数会有问题
+
+4. 当weak_ptr比shared_ptr声明周期长，且对象内存较大时，且系统堆内存敏感。会导致内存长时间没有释放，从而导致内存一直减不下去。因为控制块还有弱引用计数，当强引用计数为0时，释放对象内存，但是make函数将对象和控制块内存分配在一起了，所以必须强引用和弱引用都为0，才会释放。
+
+
+
+确保异常安全且性能提升小技巧：使用移动语义，然后在函数调用前就将智能指针构造好
+
+```c++
+std::shared_ptr<Widget> spw(new Widget, cusDel);
+// 异常安全，因为spw在computePriority可能抛出异常前已经构造了
+processWidget(std::move(spw), computePriority());
+```
 
