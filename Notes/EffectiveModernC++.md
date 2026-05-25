@@ -582,3 +582,73 @@ std::shared_ptr<Widget> spw(new Widget, cusDel);
 processWidget(std::move(spw), computePriority());
 ```
 
+## Item 22: When using the Pimpl Idiom, define special member functions in the implementation file
+
+使用unique_ptr实现pimpl：
+
+- 优点：自动资源管理
+- 缺点：即使是使用编译器自动生成的特殊函数，也必须在头文件声明，在源文件中实现。理由如下，
+  - unique_ptr的删除器是指针内部的结构，所以当进行析构时需要知道完整的类型，其默认删除器会使用static_assert判断指针是否是完整类型，如果不是就会编译报错。
+  - 编译器默认生成的版本是自动内联的，然而头文件中没有指针的完整类型。
+
+注意：因为unique_ptr不支持拷贝，所以如果指针指向的类型是支持拷贝的，我们的类也应该支持拷贝，而且一般为深拷贝，所以我们一般需要手动实现copy函数，而不能使用默认创建的。
+
+使用shared_ptr实现pimpl：
+
+- 优点：无需在头文件声明源文件中实现（shared_ptr的删除器不是指针的内部结构）
+- 缺点：性能开销大
+
+总结，仍然是根据所有权判断选择智能指针：
+
+- 在独占所有权下，使用unique_ptr（一般pimpl都是独占的）
+- 在共享所有权下，使用shared_ptr
+
+
+
+# CHAPTER 5 Rvalue References, Move Semantics, and Perfect Forwarding
+
+## Item 23: Understand std::move and std::forward
+
+move和forward本质都是类型转换
+
+move：无条件转为右值
+
+```c++
+template<typename T>
+decltype(auto) move(T&& param)
+{
+    using ReturnType = remove_reference_t<T>&&;
+	return static_cast<ReturnType>(param);
+}
+```
+
+forward：当传入的参数是右值才转为右值（因为参数默认是左值）
+
+注意：对于移动操作，参数不应该设置为const，因为移动就是要破坏原有的结构，且设置为const会导致调用到拷贝函数而不是移动函数，因为右值版本的函数无法接受const参数。
+
+forward理论上可以替代move，但是实际上不行的原因：
+
+1. forward的语义不明确，且写的更多更麻烦`std::forward<std::string>(rhs.s) == std::move(rhs.s)`
+2. 如果写错类型，编译没有问题，只是导致最后调用copy而不是move，难以调试`std::forward<std::string&>(rhs.s)`
+
+## Item 24: Distinguish universal references from rvalue references
+
+万能引用用户传入左值就是左值，右值就是右值。右值引用无论传入什么，都是右值。
+
+- 万能引用：有类型推导，格式为`type&&`或者`auto&&`
+- 右值引用：没有类型推导的`type&&`，或者格式不是`type&&`，比如`void f(const T&& param);`是右值应用
+
+举例：push_back是右值引用，因为T的类型在构造vector时已经确定了，而emplace_back是万能引用
+
+```c++
+template<class T, class Allocator = allocator<T>> // from C++
+class vector { // Standards
+public:
+    void push_back(T&& x);
+    
+    template <class... Args>
+	void emplace_back(Args&&... args);
+}
+```
+
+## Item 25: Use std::move on rvalue references, std::forward on universal references
